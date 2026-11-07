@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<!-- saved from url=(0145)https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&appPublicId=k6cqviftdw&version=4.1.10&bizCode=weavefox-lab -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>render by VisionSnap</title><script src="./browserfs.min.js.下载"></script><script src="./localforage.min.js.下载"></script><script>const bizCode = new URLSearchParams(window.location.search).get(
+        'bizCode',
+      );
+
+      if (!bizCode || bizCode === 'ideax') {
+        window.process = BrowserFS.BFSRequire("process");
+        process.env.NODE_ENV = "production";
+      }
+
+      window.Buffer = BrowserFS.BFSRequire("buffer").Buffer;
+      
+      try {
+        if (!localStorage.getItem('VISIONSNAP_BOOST_STATE')) {
+          localStorage.setItem('VISIONSNAP_BOOST_STATE', '1');
+        }
+        localforage.config({
+          driver: localforage.INDEXEDDB,
+          name: 'VISIONSNAP_ESM_NODE_MODULES',
+        });
+      } catch (e) {
+        window.isPrivateMode = true;
+      }</script><script src="./main.js.下载"></script><script>
+                window.WEAVEFOX_ENDPOINT = 'https://www.weavefox.cn';
+                window.__VIBE_APP__ = {
+                  id: 'k6cqviftdw',
+                  env: 'production'
+                };
+                (function() {
+  if (window.__visionsnap_inspector_injected) return;
+  window.__visionsnap_inspector_injected = true;
+
+  var hoveredElement = null;
+  var trackedPaths = [];
+  var scrollTimer = null;
+  var inspectorActive = false;
+
+  function buildElementPath(el) {
+    var parts = [];
+    var node = el;
+    while (node && node.nodeType === 1 && node !== document.body) {
+      var tag = node.tagName.toLowerCase();
+
+      // 有 id 时直接用 id（页面内唯一，无需索引）
+      if (node.id) {
+        parts.unshift(tag + '#' + node.id);
+        node = node.parentElement;
+        continue;
+      }
+
+      var cls = node.className && typeof node.className === 'string'
+        ? '.' + node.className.trim().split(/\s+/).slice(0, 2).join('.')
+        : '';
+
+      // 加入同级位置索引，确保并列渲染元素 path 唯一
+      var index = 1;
+      var sibling = node.previousElementSibling;
+      while (sibling) {
+        index++;
+        sibling = sibling.previousElementSibling;
+      }
+
+      parts.unshift(tag + cls + ':nth-child(' + index + ')');
+      node = node.parentElement;
+    }
+    return parts.join(' > ');
+  }
+
+  function getBoundingRect(el) {
+    var r = el.getBoundingClientRect();
+    return {
+      x: Math.round(r.x),
+      y: Math.round(r.y),
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+      top: Math.round(r.top),
+      left: Math.round(r.left),
+    };
+  }
+
+  function collectElementInfo(el) {
+    var textContent = (el.textContent || '').trim();
+    if (textContent.length > 200) {
+      textContent = textContent.substring(0, 200) + '...';
+    }
+
+    var outerHTML = (el.outerHTML || '').replace(/\n\s*/g, ' ');
+    if (outerHTML.length > 500) {
+      outerHTML = outerHTML.substring(0, 500) + '...';
+    }
+
+    var info = {
+      tagName: el.tagName.toLowerCase(),
+      id: el.id || '',
+      className: typeof el.className === 'string' ? el.className : '',
+      rect: getBoundingRect(el),
+      textContent: textContent,
+      src: el.src || '',
+      href: el.href || '',
+      elementPath: buildElementPath(el),
+      outerHTMLOneline: outerHTML,
+    };
+
+    // 读取 SDK 在 DOM 上注入的 data-code-inspect-* 属性
+    var locFilePath = el.getAttribute('data-code-inspect-loc-filepath');
+    if (locFilePath) {
+      info.codeInspect = {
+        locFilePath: locFilePath,
+        locLine: el.getAttribute('data-code-inspect-loc-line') || '',
+        component: el.getAttribute('data-code-inspect-component') || '',
+        jsxTag: el.getAttribute('data-code-inspect-jsx-tag') || '',
+      };
+    }
+
+    return info;
+  }
+
+  function postMessage(type, element) {
+    window.parent.postMessage({ type: type, element: element }, '*');
+  }
+
+  function postScrollMessage(elements) {
+    window.parent.postMessage({ type: 'sandbox:element:scroll', elements: elements }, '*');
+  }
+
+  /** 按 trackedPaths 查询 DOM 元素并上报最新 rect */
+  function reportScrollUpdate() {
+    if (!trackedPaths.length) return;
+    var all = document.querySelectorAll('*');
+    var updates = [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.nodeType !== 1) continue;
+      var path = buildElementPath(el);
+      if (trackedPaths.indexOf(path) !== -1) {
+        updates.push({ elementPath: path, rect: getBoundingRect(el) });
+      }
+    }
+    if (updates.length) postScrollMessage(updates);
+  }
+
+  window.addEventListener('scroll', function() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(reportScrollUpdate, 16);
+  }, true);
+
+  // 缩放导致 iframe 内部布局变化，重新上报已跟踪元素的最新坐标
+  window.addEventListener('resize', function() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(reportScrollUpdate, 16);
+  });
+
+  window.addEventListener('message', function(e) {
+    var data = e.data;
+    if (data && data.type === 'sandbox:inspector:sync-paths') {
+      trackedPaths = data.paths || [];
+    }
+    if (data && data.type === 'sandbox:inspector:toggle') {
+      inspectorActive = !!data.enabled;
+    }
+    if (data && data.type === 'sandbox:inspector:ping') {
+      postMessage('sandbox:inspector:ready', null);
+    }
+  });
+
+  // hover —— 只在检查模式开启时采集
+  document.addEventListener('mouseover', function(e) {
+    if (!inspectorActive) return;
+    if (e.target === hoveredElement) return;
+    hoveredElement = e.target;
+    postMessage('sandbox:element:hover', collectElementInfo(hoveredElement));
+  });
+
+  document.addEventListener('mouseout', function() {
+    if (!inspectorActive) return;
+    hoveredElement = null;
+    postMessage('sandbox:element:hover', null);
+  });
+
+  // click 选中 —— 只在检查模式开启时拦截
+  document.addEventListener('click', function(e) {
+    if (!inspectorActive) return;
+    e.preventDefault();
+    e.stopPropagation();
+    postMessage('sandbox:element:click', collectElementInfo(e.target));
+  }, true);
+})();
+                
+(function () {
+  'use strict';
+  if (window.__preview_router_injected) return;
+  window.__preview_router_injected = true;
+
+  var MSG_GOTO = 'sandbox:router:goto';
+  var MSG_BACK = 'sandbox:router:back';
+  var MSG_FORWARD = 'sandbox:router:forward';
+  var MSG_CHANGED = 'sandbox:router:changed';
+  var MSG_READY = 'sandbox:router:ready';
+
+  function safeOrigin(event) {
+    return event.source === window.parent;
+  }
+
+  function getCurrentPath() {
+    return window.location.hash || '#/';
+  }
+
+  function emitChanged() {
+    window.parent.postMessage(
+      { type: MSG_CHANGED, path: getCurrentPath() },
+      '*'
+    );
+  }
+
+  function normalizeHashPath(to) {
+    if (to.indexOf('#') === 0) return to;
+    if (to[0] !== '/') to = '/' + to;
+    return '#' + to;
+  }
+
+  function handleGoto(to) {
+    if (!to || typeof to !== 'string') return;
+
+    if (window.__Router && window.__Router.navigate) {
+      try {
+        window.__Router.navigate(to);
+        emitChanged();
+        return;
+      } catch (e) {
+        console.warn('[visionsnap-router-probe] router navigate failed, fallback to hash', e);
+      }
+    }
+
+    try {
+      var hash = normalizeHashPath(to);
+      if (window.location.hash === hash) {
+        emitChanged();
+        return;
+      }
+      window.location.hash = hash;
+    } catch (e) {
+      console.warn('[visionsnap-router-probe] hash navigate failed:', to, e);
+    }
+  }
+
+  function handleBack() {
+    try {
+      window.history.back();
+    } catch (e) {
+      console.warn('[visionsnap-router-probe] back failed', e);
+    }
+  }
+
+  function handleForward() {
+    try {
+      window.history.forward();
+    } catch (e) {
+      console.warn('[visionsnap-router-probe] forward failed', e);
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    if (!safeOrigin(event)) return;
+    var data = event.data;
+    if (!data || typeof data !== 'object') return;
+
+    switch (data.type) {
+      case MSG_GOTO:
+        handleGoto(data.to);
+        break;
+      case MSG_BACK:
+        handleBack();
+        break;
+      case MSG_FORWARD:
+        handleForward();
+        break;
+    }
+  });
+
+  var changeTimer = null;
+  function onRouteChanged() {
+    if (changeTimer) clearTimeout(changeTimer);
+    changeTimer = setTimeout(emitChanged, 50);
+  }
+
+  window.addEventListener('hashchange', onRouteChanged);
+
+  // 暴露全局注册点，供 router adapter 注册自定义 navigate
+  window.__Router = window.__Router || {};
+
+  // 就绪时通知宿主
+  window.parent.postMessage(
+    { type: MSG_READY, bootPath: getCurrentPath() },
+    '*'
+  );
+
+  if (typeof window.__PREVIEW_ROUTER_READY__ === 'function') {
+    window.__PREVIEW_ROUTER_READY__();
+  }
+})();
+
+                (function () {
+  'use strict';
+  if (window.__devtools_probe_injected) return;
+  window.__devtools_probe_injected = true;
+
+  var MSG_READY   = 'sandbox:devtools:ready';
+  var MSG_CONSOLE = 'sandbox:devtools:console';
+  var MSG_NETWORK = 'sandbox:devtools:network';
+
+  var seq = 0;
+  function nextId() { return 'dt_' + (++seq); }
+
+  /** 按 URL 扩展名推断资源类型，推断不出返回空串 */
+  function guessByPath(u) {
+    var m = String(u || '').toLowerCase().match(/\.([a-z0-9]{2,5})(?:$|[?#])/);
+    if (!m) return '';
+    var ext = m[1];
+    if ('png|jpg|jpeg|gif|webp|svg|ico|avif|bmp|apng'.indexOf(ext) >= 0) return 'img';
+    if (ext === 'css') return 'css';
+    if (ext === 'js' || ext === 'mjs' || ext === 'cjs') return 'js';
+    if (ext === 'woff' || ext === 'woff2' || ext === 'ttf' || ext === 'otf' || ext === 'eot') return 'font';
+    if ('mp4|webm|ogv|mov|mp3|wav|ogg|m4a|aac|flac|m3u8'.indexOf(ext) >= 0) return 'media';
+    return '';
+  }
+
+  /**
+   * 资源分类：优先按 URL 扩展名判断真实资源类型（区别于 initiatorType=触发者），
+   * 扩展名缺失时用图片路径关键词兜底，最后回退到少数高置信的 initiatorType。
+   * 注意：CSS 触发的 background-image / @font-face 其 initiatorType 也是 'css'，
+   * 不能直接按 initiatorType 归到 CSS。
+   */
+  function resCategory(url, init) {
+    var g = guessByPath(url);
+    if (g) return g;
+    var p = String(url || '').toLowerCase();
+    if (/\/(imgs?|images?)\//.test(p)) return 'img';
+    var c = String(init || '').toLowerCase();
+    if (c === 'fetch' || c === 'xmlhttprequest' || c === 'beacon') return 'api';
+    if (c === 'script') return 'js';
+    if (c === 'css' || c === 'link') return 'css';
+    if (c === 'img' || c === 'image') return 'img';
+    if (c === 'video' || c === 'audio' || c === 'source' || c === 'media') return 'media';
+    return 'other';
+  }
+
+  /** 把（可能相对的）url 解析为带上域名的绝对 URL，解析失败原样返回 */
+  function resolveUrl(u) {
+    try { return new URL(u, location.href).href; } catch (e) { return u; }
+  }
+
+  /** 安全序列化任意值为 { type, value } 结构 */
+  function serialize(arg) {
+    if (arg === undefined) return { type: 'undefined', value: 'undefined' };
+    if (arg === null) return { type: 'null', value: 'null' };
+    if (typeof arg === 'string') return { type: 'string', value: arg.length > 5000 ? arg.slice(0, 5000) + '...' : arg };
+    if (typeof arg === 'number') return { type: 'number', value: String(arg) };
+    if (typeof arg === 'boolean') return { type: 'boolean', value: String(arg) };
+    if (arg instanceof Error) return { type: 'error', value: arg.stack || arg.message || String(arg) };
+    if (arg instanceof Element) return { type: 'element', value: '<' + arg.tagName.toLowerCase() + (arg.id ? '#' + arg.id : '') + '>' };
+    try {
+      var seen = [];
+      var visits = 0;
+      var MAX_ENTRIES = 100, MAX_STRING = 1000, VISIT_BUDGET = 5000;
+      var json = JSON.stringify(arg, function (key, val) {
+        // 兜底预算：总访问节点数封顶，超深/超宽结构到此不再下钻，也顺带约束 stringify 递归深度
+        if (++visits > VISIT_BUDGET) return '[Truncated]';
+        if (typeof val === 'object' && val !== null) {
+          if (seen.indexOf(val) >= 0) return '[Circular]';
+          seen.push(val);
+          if (Array.isArray(val)) {
+            // 超大数组：替成前 MAX_ENTRIES 项 + 标记，打断对剩余元素的枚举
+            if (val.length > MAX_ENTRIES) {
+              return val.slice(0, MAX_ENTRIES).concat(['[...' + (val.length - MAX_ENTRIES) + ']']);
+            }
+          } else {
+            var keys = Object.keys(val);
+            // 超宽对象：替成前 MAX_ENTRIES 键 + 标记
+            if (keys.length > MAX_ENTRIES) {
+              var picked = {};
+              for (var i = 0; i < MAX_ENTRIES; i++) picked[keys[i]] = val[keys[i]];
+              picked['...'] = String(keys.length - MAX_ENTRIES) + ' more keys';
+              return picked;
+            }
+          }
+        }
+        // 嵌套字符串也截断（顶层 string 在进入这里之前已单独处理）
+        if (typeof val === 'string' && val.length > MAX_STRING) return val.slice(0, MAX_STRING) + '...';
+        return val;
+      });
+      return { type: 'object', value: json ? json.slice(0, 5000) : String(arg) };
+    } catch (e) {
+      return { type: 'unknown', value: String(arg) };
+    }
+  }
+
+  // ─── Console 拦截 ───
+  var methods = ['log', 'info', 'warn', 'error', 'debug'];
+  var originalConsole = {};
+  methods.forEach(function (method) {
+    originalConsole[method] = window.console[method] ? window.console[method].bind(window.console) : function () {};
+    window.console[method] = function () {
+      originalConsole[method].apply(window.console, arguments);
+      window.parent.postMessage({
+        type: MSG_CONSOLE,
+        entry: {
+          id: nextId(),
+          level: method,
+          args: Array.prototype.slice.call(arguments).map(serialize),
+          timestamp: Date.now()
+        }
+      }, '*');
+    };
+  });
+
+  // 未捕获的同步错误
+  window.addEventListener('error', function (e) {
+    window.parent.postMessage({
+      type: MSG_CONSOLE,
+      entry: {
+        id: nextId(),
+        level: 'error',
+        args: [{ type: 'string', value: 'Uncaught: ' + e.message + ' (' + (e.filename || '') + ':' + (e.lineno || 0) + ')' }],
+        timestamp: Date.now()
+      }
+    }, '*');
+  });
+
+  // 未处理的 Promise rejection
+  window.addEventListener('unhandledrejection', function (e) {
+    var reason = e.reason && e.reason instanceof Error ? (e.reason.stack || e.reason.message) : String(e.reason);
+    window.parent.postMessage({
+      type: MSG_CONSOLE,
+      entry: {
+        id: nextId(),
+        level: 'error',
+        args: [{ type: 'string', value: 'Unhandled Rejection: ' + reason }],
+        timestamp: Date.now()
+      }
+    }, '*');
+  });
+
+  // ─── Fetch 拦截 ───
+  var origFetch = window.fetch;
+  if (origFetch) {
+    window.fetch = function () {
+      var args = arguments;
+      var rawUrl = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';
+      var url = resolveUrl(rawUrl);
+      var method = (args[1] && args[1].method) || (args[0] && args[0].method) || 'GET';
+      var startTime = Date.now();
+      var id = nextId();
+
+      // 发出即上报 pending，与最终结果共用同一 id，宿主按 id 原地更新
+      window.parent.postMessage({
+        type: MSG_NETWORK,
+        entry: {
+          id: id, url: url, method: method, status: 0, duration: 0,
+          timestamp: startTime, loading: true, category: 'api'
+        }
+      }, '*');
+
+      function finalize(status, body, err) {
+        window.parent.postMessage({
+          type: MSG_NETWORK,
+          entry: {
+            id: id, url: url, method: method, status: status,
+            duration: Date.now() - startTime,
+            responseBody: body, error: err,
+            timestamp: Date.now(), loading: false, category: 'api'
+          }
+        }, '*');
+      }
+
+      return origFetch.apply(this, args).then(function (res) {
+        var finalStatus = res.status;
+        // 只对文本类且不大的响应读 body，避免把图片/视频/大 JSON 整体读进内存
+        var contentType = (res.headers.get('content-type') || '').toLowerCase();
+        var contentLength = parseInt(res.headers.get('content-length') || '', 10);
+        var isText = /(json|text|javascript|xml|html)/.test(contentType);
+        if (isText && !(contentLength > 200000)) {
+          res.clone().text().then(
+            function (body) { finalize(finalStatus, body ? body.slice(0, 10000) : '', undefined); },
+            function () { finalize(finalStatus, '', undefined); } // 读 body 失败也要完成条目（跨域/流式/已 locked）
+          );
+        } else {
+          finalize(finalStatus, '', undefined);
+        }
+        return res;
+      }).catch(function (err) {
+        finalize(0, '', err.message || String(err));
+        throw err;
+      });
+    };
+  }
+
+  // ─── XMLHttpRequest 拦截（patch 原型方法，保持原型链完整） ───
+  var OrigXHR = window.XMLHttpRequest;
+  if (OrigXHR && OrigXHR.prototype) {
+    var origOpen = OrigXHR.prototype.open;
+    var origSend = OrigXHR.prototype.send;
+
+    OrigXHR.prototype.open = function (method, url) {
+      this.__dtMethod = method;
+      this.__dtUrl = resolveUrl(url);
+      return origOpen.apply(this, arguments);
+    };
+
+    OrigXHR.prototype.send = function () {
+      var self = this;
+      var startTime = Date.now();
+      var id = nextId();
+      self.__dtId = id;
+
+      // 发出即上报 pending，与最终结果共用同一 id
+      window.parent.postMessage({
+        type: MSG_NETWORK,
+        entry: {
+          id: id, url: self.__dtUrl || '', method: self.__dtMethod || 'GET',
+          status: 0, duration: 0, timestamp: startTime, loading: true, category: 'api'
+        }
+      }, '*');
+
+      this.addEventListener('loadend', function () {
+        // 只对文本类 responseType 读 responseText；blob/arraybuffer/json/stream/document 访问 responseText 会抛 InvalidStateError
+        var body = '';
+        try {
+          if (self.responseType === '' || self.responseType === 'text') {
+            var t = self.responseText || '';
+            body = t.length > 10000 ? t.slice(0, 10000) : t;
+          }
+        } catch (e) {
+          // 跨域/异常情况下读 body 失败，忽略 body，完成消息照常上报
+        }
+        window.parent.postMessage({
+          type: MSG_NETWORK,
+          entry: {
+            id: self.__dtId || id, url: self.__dtUrl || '', method: self.__dtMethod || 'GET',
+            status: self.status, duration: Date.now() - startTime,
+            responseBody: body,
+            timestamp: Date.now(), loading: false, category: 'api'
+          }
+        }, '*');
+      });
+      return origSend.apply(this, arguments);
+    };
+  }
+
+  // ─── 静态资源监控（PerformanceObserver + 资源 error 捕获） ───
+  // 补齐 fetch/XHR 之外的图片、字体、CSS、脚本等静态资源，
+  // 捕获其加载耗时与 404/CORS 失败，便于尽早发现 AI 生成代码里写错的资源路径。
+  var SKIP_INITIATORS = { fetch: 1, xmlhttprequest: 1 };
+  var failedResUrls = {};
+
+  function resId(url) { return 'res:' + url; }
+
+  if (typeof PerformanceObserver !== 'undefined' && PerformanceObserver.supportedEntryTypes && PerformanceObserver.supportedEntryTypes.indexOf('resource') >= 0) {
+    try {
+      var resObserver = new PerformanceObserver(function (list) {
+        list.getEntries().forEach(function (entry) {
+          // fetch/XHR 已单独拦截，跳过避免重复
+          if (SKIP_INITIATORS[entry.initiatorType]) return;
+          var url = entry.name || '';
+          // 失败资源已由 error 事件标记为 ERR，资源时序条目不再覆盖回成功
+          if (!url || failedResUrls[url]) return;
+          var kind = resCategory(url, entry.initiatorType);
+          // sendBeacon（initiatorType=beacon）不走 fetch/XHR 拦截，但按规范始终是 POST；
+          // 其余静态资源都是 GET，类别信息放 category，不塞进 method 列
+          var method = entry.initiatorType === 'beacon' ? 'POST' : 'GET';
+          window.parent.postMessage({
+            type: MSG_NETWORK,
+            entry: {
+              id: resId(url), url: url, method: method,
+              // PerformanceResourceTiming 标准无 status 字段：能拿到资源时序即视为成功加载
+              status: 200, duration: Math.round(entry.duration) || 0,
+              timestamp: Date.now(), loading: false, category: kind
+            }
+          }, '*');
+        });
+      });
+      resObserver.observe({ type: 'resource', buffered: true });
+    } catch (e) {
+      /* 观察器初始化失败时静默降级 */
+    }
+  }
+
+  // 资源加载失败（img/script/link/source/audio/video 等的 404/CORS 失败）
+  // 资源 error 不冒泡，必须在捕获阶段监听
+  window.addEventListener('error', function (event) {
+    var t = event.target;
+    if (!t || !t.tagName) return;
+    var tag = String(t.tagName).toUpperCase();
+    if (tag !== 'IMG' && tag !== 'SCRIPT' && tag !== 'LINK' && tag !== 'SOURCE' && tag !== 'AUDIO' && tag !== 'VIDEO' && tag !== 'OBJECT' && tag !== 'EMBED') return;
+    var url = t.src || t.href || '';
+    if (!url || typeof url !== 'string') return;
+    if (failedResUrls[url]) return;
+    failedResUrls[url] = true;
+    var kind = resCategory(url, tag.toLowerCase());
+    window.parent.postMessage({
+      type: MSG_NETWORK,
+      entry: {
+        id: resId(url), url: url, method: 'GET',
+        status: 0, duration: 0,
+        error: '资源加载失败（404 或 CORS）',
+        timestamp: Date.now(), loading: false, category: kind
+      }
+    }, '*');
+  }, true);
+
+  // 就绪通知
+  window.parent.postMessage({ type: MSG_READY }, '*');
+})();
+              </script><script id="gravity-tailwind-css" src="./index.global.js.下载"></script><script id="gravity-importmap" type="importmap">{
+  "imports": {
+    "wouter/use-hash-location": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/wouter_use-hash-location.js",
+    "wouter": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/wouter.js",
+    "zustand": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/zustand.js",
+    "clsx": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/clsx.js",
+    "chunk-ZS7NZCD4": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/chunk-ZS7NZCD4.js",
+    "react-dom": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/react-dom.js",
+    "react-dom/client": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/react-dom_client.js",
+    "react": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/react.js",
+    "chunk-UOTOMIF7": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/chunk-UOTOMIF7.js",
+    "react/jsx-dev-runtime": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/react_jsx-dev-runtime.js",
+    "sonner": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/sonner.js",
+    "zustand/middleware": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/zustand_middleware.js",
+    "tailwind-merge": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/tailwind-merge.js",
+    "chunk-HKLPI2XQ": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/chunk-HKLPI2XQ.js",
+    "react/jsx-runtime": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/react_jsx-runtime.js",
+    "lucide-react": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/lucide-react.js",
+    "chunk-ERQHDX7Z": "https://weavefox-cros-assets.oss-cn-beijing.aliyuncs.com/Xr2EMpGSrATQSQTy/chunk-ERQHDX7Z.js",
+    "sass": "https://unpkg.com/sass@^1.63.0/sass.default.js",
+    "immutable": "https://unpkg.com/immutable@^4.3.7/dist/immutable.es.js"
+  },
+  "scopes": {},
+  "css": ""
+}</script><link id="gravity-link" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab" rel="stylesheet"><style>/*! tailwindcss v4.1.11 | MIT License | https://tailwindcss.com */
+@layer properties;
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+    --color-orange-400: oklch(75% 0.183 55.934);
+    --color-amber-100: oklch(96.2% 0.059 95.617);
+    --color-amber-500: oklch(76.9% 0.188 70.08);
+    --color-amber-700: oklch(55.5% 0.163 48.998);
+    --color-lime-400: oklch(84.1% 0.238 128.85);
+    --color-green-500: oklch(72.3% 0.219 149.579);
+    --color-green-600: oklch(62.7% 0.194 149.214);
+    --color-emerald-100: oklch(95% 0.052 163.051);
+    --color-emerald-400: oklch(76.5% 0.177 163.223);
+    --color-emerald-500: oklch(69.6% 0.17 162.48);
+    --color-emerald-600: oklch(59.6% 0.145 163.225);
+    --color-emerald-700: oklch(50.8% 0.118 165.612);
+    --color-teal-600: oklch(60% 0.118 184.704);
+    --color-sky-400: oklch(74.6% 0.16 232.661);
+    --color-blue-400: oklch(70.7% 0.165 254.624);
+    --color-blue-600: oklch(54.6% 0.245 262.881);
+    --color-indigo-600: oklch(51.1% 0.262 276.966);
+    --color-violet-400: oklch(70.2% 0.183 293.541);
+    --color-purple-600: oklch(55.8% 0.288 302.321);
+    --color-pink-600: oklch(59.2% 0.249 0.584);
+    --color-rose-400: oklch(71.2% 0.194 13.428);
+    --color-rose-500: oklch(64.5% 0.246 16.439);
+    --color-slate-50: oklch(98.4% 0.003 247.858);
+    --color-slate-100: oklch(96.8% 0.007 247.896);
+    --color-slate-200: oklch(92.9% 0.013 255.508);
+    --color-slate-400: oklch(70.4% 0.04 256.788);
+    --color-slate-500: oklch(55.4% 0.046 257.417);
+    --color-slate-600: oklch(44.6% 0.043 257.281);
+    --color-slate-700: oklch(37.2% 0.044 257.287);
+    --color-slate-800: oklch(27.9% 0.041 260.031);
+    --color-slate-900: oklch(20.8% 0.042 265.755);
+    --color-white: #fff;
+    --spacing: 0.25rem;
+    --container-6xl: 72rem;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: calc(1 / 0.75);
+    --text-sm: 0.875rem;
+    --text-sm--line-height: calc(1.25 / 0.875);
+    --text-base: 1rem;
+    --text-base--line-height: calc(1.5 / 1);
+    --text-xl: 1.25rem;
+    --text-xl--line-height: calc(1.75 / 1.25);
+    --text-2xl: 1.5rem;
+    --text-2xl--line-height: calc(2 / 1.5);
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: calc(2.25 / 1.875);
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    --tracking-tight: -0.025em;
+    --leading-relaxed: 1.625;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+    --blur-sm: 8px;
+    --default-transition-duration: 150ms;
+    --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type='button'], [type='reset'], [type='submit']), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden='until-found'])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .pointer-events-none {
+    pointer-events: none;
+  }
+  .absolute {
+    position: absolute;
+  }
+  .relative {
+    position: relative;
+  }
+  .sticky {
+    position: sticky;
+  }
+  .top-0 {
+    top: calc(var(--spacing) * 0);
+  }
+  .top-1\/2 {
+    top: calc(1/2 * 100%);
+  }
+  .top-4 {
+    top: calc(var(--spacing) * 4);
+  }
+  .top-16 {
+    top: calc(var(--spacing) * 16);
+  }
+  .-right-4 {
+    right: calc(var(--spacing) * -4);
+  }
+  .right-3 {
+    right: calc(var(--spacing) * 3);
+  }
+  .-bottom-4 {
+    bottom: calc(var(--spacing) * -4);
+  }
+  .bottom-3 {
+    bottom: calc(var(--spacing) * 3);
+  }
+  .left-4 {
+    left: calc(var(--spacing) * 4);
+  }
+  .z-20 {
+    z-index: 20;
+  }
+  .z-30 {
+    z-index: 30;
+  }
+  .-mx-4 {
+    margin-inline: calc(var(--spacing) * -4);
+  }
+  .mx-auto {
+    margin-inline: auto;
+  }
+  .mt-0\.5 {
+    margin-top: calc(var(--spacing) * 0.5);
+  }
+  .mt-1\.5 {
+    margin-top: calc(var(--spacing) * 1.5);
+  }
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .mt-5 {
+    margin-top: calc(var(--spacing) * 5);
+  }
+  .mt-auto {
+    margin-top: auto;
+  }
+  .mb-4 {
+    margin-bottom: calc(var(--spacing) * 4);
+  }
+  .ml-2 {
+    margin-left: calc(var(--spacing) * 2);
+  }
+  .flex {
+    display: flex;
+  }
+  .grid {
+    display: grid;
+  }
+  .hidden {
+    display: none;
+  }
+  .inline-flex {
+    display: inline-flex;
+  }
+  .size-1\.5 {
+    width: calc(var(--spacing) * 1.5);
+    height: calc(var(--spacing) * 1.5);
+  }
+  .size-3\.5 {
+    width: calc(var(--spacing) * 3.5);
+    height: calc(var(--spacing) * 3.5);
+  }
+  .size-5 {
+    width: calc(var(--spacing) * 5);
+    height: calc(var(--spacing) * 5);
+  }
+  .size-9 {
+    width: calc(var(--spacing) * 9);
+    height: calc(var(--spacing) * 9);
+  }
+  .size-24 {
+    width: calc(var(--spacing) * 24);
+    height: calc(var(--spacing) * 24);
+  }
+  .h-12 {
+    height: calc(var(--spacing) * 12);
+  }
+  .h-16 {
+    height: calc(var(--spacing) * 16);
+  }
+  .h-32 {
+    height: calc(var(--spacing) * 32);
+  }
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  .w-full {
+    width: 100%;
+  }
+  .max-w-6xl {
+    max-width: var(--container-6xl);
+  }
+  .min-w-0 {
+    min-width: calc(var(--spacing) * 0);
+  }
+  .flex-1 {
+    flex: 1;
+  }
+  .shrink-0 {
+    flex-shrink: 0;
+  }
+  .-translate-y-1\/2 {
+    --tw-translate-y: calc(calc(1/2 * 100%) * -1);
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .flex-col {
+    flex-direction: column;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .items-end {
+    align-items: flex-end;
+  }
+  .items-start {
+    align-items: flex-start;
+  }
+  .justify-between {
+    justify-content: space-between;
+  }
+  .justify-center {
+    justify-content: center;
+  }
+  .gap-0\.5 {
+    gap: calc(var(--spacing) * 0.5);
+  }
+  .gap-1\.5 {
+    gap: calc(var(--spacing) * 1.5);
+  }
+  .gap-2 {
+    gap: calc(var(--spacing) * 2);
+  }
+  .gap-3 {
+    gap: calc(var(--spacing) * 3);
+  }
+  .gap-4 {
+    gap: calc(var(--spacing) * 4);
+  }
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .overflow-hidden {
+    overflow: hidden;
+  }
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
+  .rounded-2xl {
+    border-radius: var(--radius-2xl);
+  }
+  .rounded-full {
+    border-radius: calc(infinity * 1px);
+  }
+  .rounded-xl {
+    border-radius: var(--radius-xl);
+  }
+  .border {
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+  }
+  .border-t {
+    border-top-style: var(--tw-border-style);
+    border-top-width: 1px;
+  }
+  .border-b {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+  }
+  .border-slate-100 {
+    border-color: var(--color-slate-100);
+  }
+  .border-slate-200 {
+    border-color: var(--color-slate-200);
+  }
+  .border-slate-200\/60 {
+    border-color: color-mix(in srgb, oklch(92.9% 0.013 255.508) 60%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-slate-200) 60%, transparent);
+    }
+  }
+  .border-slate-200\/70 {
+    border-color: color-mix(in srgb, oklch(92.9% 0.013 255.508) 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-slate-200) 70%, transparent);
+    }
+  }
+  .bg-amber-100\/70 {
+    background-color: color-mix(in srgb, oklch(96.2% 0.059 95.617) 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-amber-100) 70%, transparent);
+    }
+  }
+  .bg-amber-500 {
+    background-color: var(--color-amber-500);
+  }
+  .bg-emerald-100\/70 {
+    background-color: color-mix(in srgb, oklch(95% 0.052 163.051) 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-emerald-100) 70%, transparent);
+    }
+  }
+  .bg-emerald-500 {
+    background-color: var(--color-emerald-500);
+  }
+  .bg-slate-50 {
+    background-color: var(--color-slate-50);
+  }
+  .bg-slate-50\/90 {
+    background-color: color-mix(in srgb, oklch(98.4% 0.003 247.858) 90%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-slate-50) 90%, transparent);
+    }
+  }
+  .bg-slate-100 {
+    background-color: var(--color-slate-100);
+  }
+  .bg-slate-900 {
+    background-color: var(--color-slate-900);
+  }
+  .bg-white {
+    background-color: var(--color-white);
+  }
+  .bg-white\/15 {
+    background-color: color-mix(in srgb, #fff 15%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 15%, transparent);
+    }
+  }
+  .bg-white\/85 {
+    background-color: color-mix(in srgb, #fff 85%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 85%, transparent);
+    }
+  }
+  .bg-gradient-to-br {
+    --tw-gradient-position: to bottom right in oklab;
+    background-image: linear-gradient(var(--tw-gradient-stops));
+  }
+  .from-blue-400 {
+    --tw-gradient-from: var(--color-blue-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-emerald-400 {
+    --tw-gradient-from: var(--color-emerald-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-emerald-500 {
+    --tw-gradient-from: var(--color-emerald-500);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-green-500 {
+    --tw-gradient-from: var(--color-green-500);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-lime-400 {
+    --tw-gradient-from: var(--color-lime-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-orange-400 {
+    --tw-gradient-from: var(--color-orange-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-rose-400 {
+    --tw-gradient-from: var(--color-rose-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-sky-400 {
+    --tw-gradient-from: var(--color-sky-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .from-violet-400 {
+    --tw-gradient-from: var(--color-violet-400);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-blue-600 {
+    --tw-gradient-to: var(--color-blue-600);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-emerald-700 {
+    --tw-gradient-to: var(--color-emerald-700);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-green-600 {
+    --tw-gradient-to: var(--color-green-600);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-indigo-600 {
+    --tw-gradient-to: var(--color-indigo-600);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-pink-600 {
+    --tw-gradient-to: var(--color-pink-600);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-purple-600 {
+    --tw-gradient-to: var(--color-purple-600);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-rose-500 {
+    --tw-gradient-to: var(--color-rose-500);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .to-teal-600 {
+    --tw-gradient-to: var(--color-teal-600);
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+  .p-3 {
+    padding: calc(var(--spacing) * 3);
+  }
+  .p-4 {
+    padding: calc(var(--spacing) * 4);
+  }
+  .px-2 {
+    padding-inline: calc(var(--spacing) * 2);
+  }
+  .px-2\.5 {
+    padding-inline: calc(var(--spacing) * 2.5);
+  }
+  .px-3 {
+    padding-inline: calc(var(--spacing) * 3);
+  }
+  .px-3\.5 {
+    padding-inline: calc(var(--spacing) * 3.5);
+  }
+  .px-4 {
+    padding-inline: calc(var(--spacing) * 4);
+  }
+  .py-0\.5 {
+    padding-block: calc(var(--spacing) * 0.5);
+  }
+  .py-1 {
+    padding-block: calc(var(--spacing) * 1);
+  }
+  .py-1\.5 {
+    padding-block: calc(var(--spacing) * 1.5);
+  }
+  .py-2 {
+    padding-block: calc(var(--spacing) * 2);
+  }
+  .py-3 {
+    padding-block: calc(var(--spacing) * 3);
+  }
+  .py-6 {
+    padding-block: calc(var(--spacing) * 6);
+  }
+  .pt-2 {
+    padding-top: calc(var(--spacing) * 2);
+  }
+  .pt-5 {
+    padding-top: calc(var(--spacing) * 5);
+  }
+  .pt-8 {
+    padding-top: calc(var(--spacing) * 8);
+  }
+  .pr-10 {
+    padding-right: calc(var(--spacing) * 10);
+  }
+  .pb-0\.5 {
+    padding-bottom: calc(var(--spacing) * 0.5);
+  }
+  .pb-4 {
+    padding-bottom: calc(var(--spacing) * 4);
+  }
+  .pb-14 {
+    padding-bottom: calc(var(--spacing) * 14);
+  }
+  .pl-11 {
+    padding-left: calc(var(--spacing) * 11);
+  }
+  .text-center {
+    text-align: center;
+  }
+  .text-right {
+    text-align: right;
+  }
+  .text-2xl {
+    font-size: var(--text-2xl);
+    line-height: var(--tw-leading, var(--text-2xl--line-height));
+  }
+  .text-base {
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+  .text-sm {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+  .text-xl {
+    font-size: var(--text-xl);
+    line-height: var(--tw-leading, var(--text-xl--line-height));
+  }
+  .text-xs {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+  .text-\[11px\] {
+    font-size: 11px;
+  }
+  .leading-relaxed {
+    --tw-leading: var(--leading-relaxed);
+    line-height: var(--leading-relaxed);
+  }
+  .font-bold {
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+  }
+  .font-extrabold {
+    --tw-font-weight: var(--font-weight-extrabold);
+    font-weight: var(--font-weight-extrabold);
+  }
+  .font-medium {
+    --tw-font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-medium);
+  }
+  .font-normal {
+    --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal);
+  }
+  .font-semibold {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+  .tracking-tight {
+    --tw-tracking: var(--tracking-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+  .text-amber-500 {
+    color: var(--color-amber-500);
+  }
+  .text-amber-700 {
+    color: var(--color-amber-700);
+  }
+  .text-emerald-600 {
+    color: var(--color-emerald-600);
+  }
+  .text-emerald-700 {
+    color: var(--color-emerald-700);
+  }
+  .text-rose-500 {
+    color: var(--color-rose-500);
+  }
+  .text-slate-400 {
+    color: var(--color-slate-400);
+  }
+  .text-slate-500 {
+    color: var(--color-slate-500);
+  }
+  .text-slate-600 {
+    color: var(--color-slate-600);
+  }
+  .text-slate-800 {
+    color: var(--color-slate-800);
+  }
+  .text-slate-900 {
+    color: var(--color-slate-900);
+  }
+  .text-white {
+    color: var(--color-white);
+  }
+  .text-white\/15 {
+    color: color-mix(in srgb, #fff 15%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-white) 15%, transparent);
+    }
+  }
+  .shadow-sm {
+    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .ring-1 {
+    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .ring-slate-200 {
+    --tw-ring-color: var(--color-slate-200);
+  }
+  .ring-slate-200\/60 {
+    --tw-ring-color: color-mix(in srgb, oklch(92.9% 0.013 255.508) 60%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      --tw-ring-color: color-mix(in oklab, var(--color-slate-200) 60%, transparent);
+    }
+  }
+  .backdrop-blur {
+    --tw-backdrop-blur: blur(8px);
+    -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+    backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+  }
+  .backdrop-blur-sm {
+    --tw-backdrop-blur: blur(var(--blur-sm));
+    -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+    backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+  }
+  .transition {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, visibility, content-visibility, overlay, pointer-events;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-colors {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-transform {
+    transition-property: transform, translate, scale, rotate;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .outline-none {
+    --tw-outline-style: none;
+    outline-style: none;
+  }
+  .group-hover\:translate-x-0\.5 {
+    &:is(:where(.group):hover *) {
+      @media (hover: hover) {
+        --tw-translate-x: calc(var(--spacing) * 0.5);
+        translate: var(--tw-translate-x) var(--tw-translate-y);
+      }
+    }
+  }
+  .placeholder\:text-slate-400 {
+    &::placeholder {
+      color: var(--color-slate-400);
+    }
+  }
+  .hover\:-translate-y-0\.5 {
+    &:hover {
+      @media (hover: hover) {
+        --tw-translate-y: calc(var(--spacing) * -0.5);
+        translate: var(--tw-translate-x) var(--tw-translate-y);
+      }
+    }
+  }
+  .hover\:bg-slate-100 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-slate-100);
+      }
+    }
+  }
+  .hover\:bg-slate-700 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-slate-700);
+      }
+    }
+  }
+  .hover\:shadow-md {
+    &:hover {
+      @media (hover: hover) {
+        --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 2px 4px -2px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+        box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+      }
+    }
+  }
+  .focus\:border-emerald-500 {
+    &:focus {
+      border-color: var(--color-emerald-500);
+    }
+  }
+  .focus\:ring-2 {
+    &:focus {
+      --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    }
+  }
+  .focus\:ring-emerald-500\/20 {
+    &:focus {
+      --tw-ring-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 20%, transparent);
+      @supports (color: color-mix(in lab, red, red)) {
+        --tw-ring-color: color-mix(in oklab, var(--color-emerald-500) 20%, transparent);
+      }
+    }
+  }
+  .sm\:block {
+    @media (width >= 40rem) {
+      display: block;
+    }
+  }
+  .sm\:inline {
+    @media (width >= 40rem) {
+      display: inline;
+    }
+  }
+  .sm\:grid-cols-2 {
+    @media (width >= 40rem) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .sm\:grid-cols-4 {
+    @media (width >= 40rem) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .sm\:text-3xl {
+    @media (width >= 40rem) {
+      font-size: var(--text-3xl);
+      line-height: var(--tw-leading, var(--text-3xl--line-height));
+    }
+  }
+  .lg\:grid-cols-3 {
+    @media (width >= 64rem) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .xl\:grid-cols-4 {
+    @media (width >= 80rem) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+}
+@property --tw-translate-x {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-translate-y {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-translate-z {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-border-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
+@property --tw-gradient-position {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-gradient-from {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0000;
+}
+@property --tw-gradient-via {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0000;
+}
+@property --tw-gradient-to {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0000;
+}
+@property --tw-gradient-stops {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-gradient-via-stops {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-gradient-from-position {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+@property --tw-gradient-via-position {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 50%;
+}
+@property --tw-gradient-to-position {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-leading {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-font-weight {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-tracking {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-inset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-ring-inset {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-offset-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --tw-ring-offset-color {
+  syntax: "*";
+  inherits: false;
+  initial-value: #fff;
+}
+@property --tw-ring-offset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-backdrop-blur {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-brightness {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-contrast {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-grayscale {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-hue-rotate {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-invert {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-opacity {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-saturate {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-backdrop-sepia {
+  syntax: "*";
+  inherits: false;
+}
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-translate-x: 0;
+      --tw-translate-y: 0;
+      --tw-translate-z: 0;
+      --tw-border-style: solid;
+      --tw-gradient-position: initial;
+      --tw-gradient-from: #0000;
+      --tw-gradient-via: #0000;
+      --tw-gradient-to: #0000;
+      --tw-gradient-stops: initial;
+      --tw-gradient-via-stops: initial;
+      --tw-gradient-from-position: 0%;
+      --tw-gradient-via-position: 50%;
+      --tw-gradient-to-position: 100%;
+      --tw-leading: initial;
+      --tw-font-weight: initial;
+      --tw-tracking: initial;
+      --tw-shadow: 0 0 #0000;
+      --tw-shadow-color: initial;
+      --tw-shadow-alpha: 100%;
+      --tw-inset-shadow: 0 0 #0000;
+      --tw-inset-shadow-color: initial;
+      --tw-inset-shadow-alpha: 100%;
+      --tw-ring-color: initial;
+      --tw-ring-shadow: 0 0 #0000;
+      --tw-inset-ring-color: initial;
+      --tw-inset-ring-shadow: 0 0 #0000;
+      --tw-ring-inset: initial;
+      --tw-ring-offset-width: 0px;
+      --tw-ring-offset-color: #fff;
+      --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-backdrop-blur: initial;
+      --tw-backdrop-brightness: initial;
+      --tw-backdrop-contrast: initial;
+      --tw-backdrop-grayscale: initial;
+      --tw-backdrop-hue-rotate: initial;
+      --tw-backdrop-invert: initial;
+      --tw-backdrop-opacity: initial;
+      --tw-backdrop-saturate: initial;
+      --tw-backdrop-sepia: initial;
+    }
+  }
+}
+</style><style type="text/css">[data-sonner-toaster][dir=ltr],html[dir=ltr]{--toast-icon-margin-start:-3px;--toast-icon-margin-end:4px;--toast-svg-margin-start:-1px;--toast-svg-margin-end:0px;--toast-button-margin-start:auto;--toast-button-margin-end:0;--toast-close-button-start:0;--toast-close-button-end:unset;--toast-close-button-transform:translate(-35%, -35%)}[data-sonner-toaster][dir=rtl],html[dir=rtl]{--toast-icon-margin-start:4px;--toast-icon-margin-end:-3px;--toast-svg-margin-start:0px;--toast-svg-margin-end:-1px;--toast-button-margin-start:0;--toast-button-margin-end:auto;--toast-close-button-start:unset;--toast-close-button-end:0;--toast-close-button-transform:translate(35%, -35%)}[data-sonner-toaster]{position:fixed;width:var(--width);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;--gray1:hsl(0, 0%, 99%);--gray2:hsl(0, 0%, 97.3%);--gray3:hsl(0, 0%, 95.1%);--gray4:hsl(0, 0%, 93%);--gray5:hsl(0, 0%, 90.9%);--gray6:hsl(0, 0%, 88.7%);--gray7:hsl(0, 0%, 85.8%);--gray8:hsl(0, 0%, 78%);--gray9:hsl(0, 0%, 56.1%);--gray10:hsl(0, 0%, 52.3%);--gray11:hsl(0, 0%, 43.5%);--gray12:hsl(0, 0%, 9%);--border-radius:8px;box-sizing:border-box;padding:0;margin:0;list-style:none;outline:0;z-index:999999999;transition:transform .4s ease}@media (hover:none) and (pointer:coarse){[data-sonner-toaster][data-lifted=true]{transform:none}}[data-sonner-toaster][data-x-position=right]{right:var(--offset-right)}[data-sonner-toaster][data-x-position=left]{left:var(--offset-left)}[data-sonner-toaster][data-x-position=center]{left:50%;transform:translateX(-50%)}[data-sonner-toaster][data-y-position=top]{top:var(--offset-top)}[data-sonner-toaster][data-y-position=bottom]{bottom:var(--offset-bottom)}[data-sonner-toast]{--y:translateY(100%);--lift-amount:calc(var(--lift) * var(--gap));z-index:var(--z-index);position:absolute;opacity:0;transform:var(--y);touch-action:none;transition:transform .4s,opacity .4s,height .4s,box-shadow .2s;box-sizing:border-box;outline:0;overflow-wrap:anywhere}[data-sonner-toast][data-styled=true]{padding:16px;background:var(--normal-bg);border:1px solid var(--normal-border);color:var(--normal-text);border-radius:var(--border-radius);box-shadow:0 4px 12px rgba(0,0,0,.1);width:var(--width);font-size:13px;display:flex;align-items:center;gap:6px}[data-sonner-toast]:focus-visible{box-shadow:0 4px 12px rgba(0,0,0,.1),0 0 0 2px rgba(0,0,0,.2)}[data-sonner-toast][data-y-position=top]{top:0;--y:translateY(-100%);--lift:1;--lift-amount:calc(1 * var(--gap))}[data-sonner-toast][data-y-position=bottom]{bottom:0;--y:translateY(100%);--lift:-1;--lift-amount:calc(var(--lift) * var(--gap))}[data-sonner-toast][data-styled=true] [data-description]{font-weight:400;line-height:1.4;color:#3f3f3f}[data-rich-colors=true][data-sonner-toast][data-styled=true] [data-description]{color:inherit}[data-sonner-toaster][data-sonner-theme=dark] [data-description]{color:#e8e8e8}[data-sonner-toast][data-styled=true] [data-title]{font-weight:500;line-height:1.5;color:inherit}[data-sonner-toast][data-styled=true] [data-icon]{display:flex;height:16px;width:16px;position:relative;justify-content:flex-start;align-items:center;flex-shrink:0;margin-left:var(--toast-icon-margin-start);margin-right:var(--toast-icon-margin-end)}[data-sonner-toast][data-promise=true] [data-icon]>svg{opacity:0;transform:scale(.8);transform-origin:center;animation:sonner-fade-in .3s ease forwards}[data-sonner-toast][data-styled=true] [data-icon]>*{flex-shrink:0}[data-sonner-toast][data-styled=true] [data-icon] svg{margin-left:var(--toast-svg-margin-start);margin-right:var(--toast-svg-margin-end)}[data-sonner-toast][data-styled=true] [data-content]{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}[data-sonner-toast][data-styled=true] [data-button]{border-radius:4px;padding-left:8px;padding-right:8px;height:24px;font-size:12px;color:var(--normal-bg);background:var(--normal-text);margin-left:var(--toast-button-margin-start);margin-right:var(--toast-button-margin-end);border:none;font-weight:500;cursor:pointer;outline:0;display:flex;align-items:center;flex-shrink:0;transition:opacity .4s,box-shadow .2s}[data-sonner-toast][data-styled=true] [data-button]:focus-visible{box-shadow:0 0 0 2px rgba(0,0,0,.4)}[data-sonner-toast][data-styled=true] [data-button]:first-of-type{margin-left:var(--toast-button-margin-start);margin-right:var(--toast-button-margin-end)}[data-sonner-toast][data-styled=true] [data-cancel]{color:var(--normal-text);background:rgba(0,0,0,.08)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast][data-styled=true] [data-cancel]{background:rgba(255,255,255,.3)}[data-sonner-toast][data-styled=true] [data-close-button]{position:absolute;left:var(--toast-close-button-start);right:var(--toast-close-button-end);top:0;height:20px;width:20px;display:flex;justify-content:center;align-items:center;padding:0;color:var(--normal-text);background:var(--normal-bg);border:1px solid var(--normal-border);transform:var(--toast-close-button-transform);border-radius:50%;cursor:pointer;z-index:1;transition:opacity .1s,background .2s,border-color .2s}[data-sonner-toast][data-styled=true] [data-close-button]:focus-visible{box-shadow:0 4px 12px rgba(0,0,0,.1),0 0 0 2px rgba(0,0,0,.2)}[data-sonner-toast][data-styled=true] [data-disabled=true]{cursor:not-allowed}[data-sonner-toast][data-styled=true]:hover [data-close-button]:hover{background:var(--gray2);border-color:var(--gray5)}[data-sonner-toast][data-swiping=true]::before{content:'';position:absolute;left:-100%;right:-100%;height:100%;z-index:-1}[data-sonner-toast][data-y-position=top][data-swiping=true]::before{bottom:50%;transform:scaleY(3) translateY(50%)}[data-sonner-toast][data-y-position=bottom][data-swiping=true]::before{top:50%;transform:scaleY(3) translateY(-50%)}[data-sonner-toast][data-swiping=false][data-removed=true]::before{content:'';position:absolute;inset:0;transform:scaleY(2)}[data-sonner-toast][data-expanded=true]::after{content:'';position:absolute;left:0;height:calc(var(--gap) + 1px);bottom:100%;width:100%}[data-sonner-toast][data-mounted=true]{--y:translateY(0);opacity:1}[data-sonner-toast][data-expanded=false][data-front=false]{--scale:var(--toasts-before) * 0.05 + 1;--y:translateY(calc(var(--lift-amount) * var(--toasts-before))) scale(calc(-1 * var(--scale)));height:var(--front-toast-height)}[data-sonner-toast]>*{transition:opacity .4s}[data-sonner-toast][data-x-position=right]{right:0}[data-sonner-toast][data-x-position=left]{left:0}[data-sonner-toast][data-expanded=false][data-front=false][data-styled=true]>*{opacity:0}[data-sonner-toast][data-visible=false]{opacity:0;pointer-events:none}[data-sonner-toast][data-mounted=true][data-expanded=true]{--y:translateY(calc(var(--lift) * var(--offset)));height:var(--initial-height)}[data-sonner-toast][data-removed=true][data-front=true][data-swipe-out=false]{--y:translateY(calc(var(--lift) * -100%));opacity:0}[data-sonner-toast][data-removed=true][data-front=false][data-swipe-out=false][data-expanded=true]{--y:translateY(calc(var(--lift) * var(--offset) + var(--lift) * -100%));opacity:0}[data-sonner-toast][data-removed=true][data-front=false][data-swipe-out=false][data-expanded=false]{--y:translateY(40%);opacity:0;transition:transform .5s,opacity .2s}[data-sonner-toast][data-removed=true][data-front=false]::before{height:calc(var(--initial-height) + 20%)}[data-sonner-toast][data-swiping=true]{transform:var(--y) translateY(var(--swipe-amount-y,0)) translateX(var(--swipe-amount-x,0));transition:none}[data-sonner-toast][data-swiped=true]{-webkit-user-select:none;user-select:none}[data-sonner-toast][data-swipe-out=true][data-y-position=bottom],[data-sonner-toast][data-swipe-out=true][data-y-position=top]{animation-duration:.2s;animation-timing-function:ease-out;animation-fill-mode:forwards}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=left]{animation-name:swipe-out-left}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=right]{animation-name:swipe-out-right}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=up]{animation-name:swipe-out-up}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=down]{animation-name:swipe-out-down}@keyframes swipe-out-left{from{transform:var(--y) translateX(var(--swipe-amount-x));opacity:1}to{transform:var(--y) translateX(calc(var(--swipe-amount-x) - 100%));opacity:0}}@keyframes swipe-out-right{from{transform:var(--y) translateX(var(--swipe-amount-x));opacity:1}to{transform:var(--y) translateX(calc(var(--swipe-amount-x) + 100%));opacity:0}}@keyframes swipe-out-up{from{transform:var(--y) translateY(var(--swipe-amount-y));opacity:1}to{transform:var(--y) translateY(calc(var(--swipe-amount-y) - 100%));opacity:0}}@keyframes swipe-out-down{from{transform:var(--y) translateY(var(--swipe-amount-y));opacity:1}to{transform:var(--y) translateY(calc(var(--swipe-amount-y) + 100%));opacity:0}}@media (max-width:600px){[data-sonner-toaster]{position:fixed;right:var(--mobile-offset-right);left:var(--mobile-offset-left);width:100%}[data-sonner-toaster][dir=rtl]{left:calc(var(--mobile-offset-left) * -1)}[data-sonner-toaster] [data-sonner-toast]{left:0;right:0;width:calc(100% - var(--mobile-offset-left) * 2)}[data-sonner-toaster][data-x-position=left]{left:var(--mobile-offset-left)}[data-sonner-toaster][data-y-position=bottom]{bottom:var(--mobile-offset-bottom)}[data-sonner-toaster][data-y-position=top]{top:var(--mobile-offset-top)}[data-sonner-toaster][data-x-position=center]{left:var(--mobile-offset-left);right:var(--mobile-offset-right);transform:none}}[data-sonner-toaster][data-sonner-theme=light]{--normal-bg:#fff;--normal-border:var(--gray4);--normal-text:var(--gray12);--success-bg:hsl(143, 85%, 96%);--success-border:hsl(145, 92%, 87%);--success-text:hsl(140, 100%, 27%);--info-bg:hsl(208, 100%, 97%);--info-border:hsl(221, 91%, 93%);--info-text:hsl(210, 92%, 45%);--warning-bg:hsl(49, 100%, 97%);--warning-border:hsl(49, 91%, 84%);--warning-text:hsl(31, 92%, 45%);--error-bg:hsl(359, 100%, 97%);--error-border:hsl(359, 100%, 94%);--error-text:hsl(360, 100%, 45%)}[data-sonner-toaster][data-sonner-theme=light] [data-sonner-toast][data-invert=true]{--normal-bg:#000;--normal-border:hsl(0, 0%, 20%);--normal-text:var(--gray1)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast][data-invert=true]{--normal-bg:#fff;--normal-border:var(--gray3);--normal-text:var(--gray12)}[data-sonner-toaster][data-sonner-theme=dark]{--normal-bg:#000;--normal-bg-hover:hsl(0, 0%, 12%);--normal-border:hsl(0, 0%, 20%);--normal-border-hover:hsl(0, 0%, 25%);--normal-text:var(--gray1);--success-bg:hsl(150, 100%, 6%);--success-border:hsl(147, 100%, 12%);--success-text:hsl(150, 86%, 65%);--info-bg:hsl(215, 100%, 6%);--info-border:hsl(223, 43%, 17%);--info-text:hsl(216, 87%, 65%);--warning-bg:hsl(64, 100%, 6%);--warning-border:hsl(60, 100%, 9%);--warning-text:hsl(46, 87%, 65%);--error-bg:hsl(358, 76%, 10%);--error-border:hsl(357, 89%, 16%);--error-text:hsl(358, 100%, 81%)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast] [data-close-button]{background:var(--normal-bg);border-color:var(--normal-border);color:var(--normal-text)}[data-sonner-toaster][data-sonner-theme=dark] [data-sonner-toast] [data-close-button]:hover{background:var(--normal-bg-hover);border-color:var(--normal-border-hover)}[data-rich-colors=true][data-sonner-toast][data-type=success]{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}[data-rich-colors=true][data-sonner-toast][data-type=success] [data-close-button]{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}[data-rich-colors=true][data-sonner-toast][data-type=info]{background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)}[data-rich-colors=true][data-sonner-toast][data-type=info] [data-close-button]{background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)}[data-rich-colors=true][data-sonner-toast][data-type=warning]{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text)}[data-rich-colors=true][data-sonner-toast][data-type=warning] [data-close-button]{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text)}[data-rich-colors=true][data-sonner-toast][data-type=error]{background:var(--error-bg);border-color:var(--error-border);color:var(--error-text)}[data-rich-colors=true][data-sonner-toast][data-type=error] [data-close-button]{background:var(--error-bg);border-color:var(--error-border);color:var(--error-text)}.sonner-loading-wrapper{--size:16px;height:var(--size);width:var(--size);position:absolute;inset:0;z-index:10}.sonner-loading-wrapper[data-visible=false]{transform-origin:center;animation:sonner-fade-out .2s ease forwards}.sonner-spinner{position:relative;top:50%;left:50%;height:var(--size);width:var(--size)}.sonner-loading-bar{animation:sonner-spin 1.2s linear infinite;background:var(--gray11);border-radius:6px;height:8%;left:-10%;position:absolute;top:-3.9%;width:24%}.sonner-loading-bar:first-child{animation-delay:-1.2s;transform:rotate(.0001deg) translate(146%)}.sonner-loading-bar:nth-child(2){animation-delay:-1.1s;transform:rotate(30deg) translate(146%)}.sonner-loading-bar:nth-child(3){animation-delay:-1s;transform:rotate(60deg) translate(146%)}.sonner-loading-bar:nth-child(4){animation-delay:-.9s;transform:rotate(90deg) translate(146%)}.sonner-loading-bar:nth-child(5){animation-delay:-.8s;transform:rotate(120deg) translate(146%)}.sonner-loading-bar:nth-child(6){animation-delay:-.7s;transform:rotate(150deg) translate(146%)}.sonner-loading-bar:nth-child(7){animation-delay:-.6s;transform:rotate(180deg) translate(146%)}.sonner-loading-bar:nth-child(8){animation-delay:-.5s;transform:rotate(210deg) translate(146%)}.sonner-loading-bar:nth-child(9){animation-delay:-.4s;transform:rotate(240deg) translate(146%)}.sonner-loading-bar:nth-child(10){animation-delay:-.3s;transform:rotate(270deg) translate(146%)}.sonner-loading-bar:nth-child(11){animation-delay:-.2s;transform:rotate(300deg) translate(146%)}.sonner-loading-bar:nth-child(12){animation-delay:-.1s;transform:rotate(330deg) translate(146%)}@keyframes sonner-fade-in{0%{opacity:0;transform:scale(.8)}100%{opacity:1;transform:scale(1)}}@keyframes sonner-fade-out{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.8)}}@keyframes sonner-spin{0%{opacity:1}100%{opacity:.15}}@media (prefers-reduced-motion){.sonner-loading-bar,[data-sonner-toast],[data-sonner-toast]>*{transition:none!important;animation:none!important}}.sonner-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transform-origin:center;transition:opacity .2s,transform .2s}.sonner-loader[data-visible=false]{opacity:0;transform:scale(.8) translate(-50%,-50%)}</style></head><body><style>body {
+        margin: 0px;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+          'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+      }
+
+      *,
+      *::before,
+      *::after {
+          box-sizing: border-box;
+      }
+
+      #errorOverlay {
+        width: 100%;
+        height: auto;
+        min-height: 100%;
+        box-sizing: border-box;
+        padding: 20px;
+        position: fixed;
+        background: rgba(255, 223, 223, 0.85);
+        font-size: 14px;
+        word-break: keep-all;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        color: #d84141;
+        display: none;
+      }
+
+      #visionsnap-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* 加载标题 */
+      #visionsnap-loading .visionsnap-title {
+        color: rgb(2, 132, 199); /* text-sky-600 */
+        font-size: 1.5rem; /* text-2xl */
+        line-height: 2rem;
+        animation: pulse-title 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse-title {
+        0%, 100% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      #visionsnap-loading-circle {
+        margin-top: 30px;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      /* 单个点样式 */
+      #visionsnap-loading-circle .dot {
+        width: 0.625rem; /* w-2.5 */
+        height: 0.625rem; /* h-2.5 */
+        border-radius: 50%;
+        background-color: rgb(14, 165, 233); /* bg-sky-500 */
+      }
+
+      #visionsnap-loading-circle .dot-1 {
+        animation: scale-dot 1.5s ease-in-out infinite 0s;
+      }
+
+      #visionsnap-loading-circle .dot-2 {
+        animation: scale-dot 1.5s ease-in-out infinite 0.2s;
+      }
+
+      #visionsnap-loading-circle .dot-3 {
+        animation: scale-dot 1.5s ease-in-out infinite 0.4s;
+      }
+
+      @keyframes scale-dot {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.4;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 1;
+        }
+      }
+
+      .visionsnap-message-container {
+        margin-top: 30px; /* mt-12 */
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.15s ease-in-out;
+        background: none;
+        border: none;
+        padding: 0;
+        outline: none;
+        height: 36px;
+        line-height: 36px;
+      }
+
+      .visionsnap-message-container:hover {
+        opacity: 0.8;
+      }
+
+      .visionsnap-message-container:active {
+        transform: scale(0.95);
+      }
+
+      .visionsnap-message-container:focus {
+        outline: 2px solid rgb(59, 130, 246);
+        outline-offset: 2px;
+      }
+
+      #visionsnap-loading-deps-text {
+        width: auto;
+        height: 36px;
+        line-height: 36px;
+        text-align: center;
+        display: none;
+      }
+
+      #visionsnap-loading-deps-text span {
+        color: rgb(14, 165, 233); /* text-sky-500 */
+        font-size: 14px; /* text-sm */
+        line-height: 36px;
+      }
+
+      #visionsnap-logo {
+        position: absolute;
+        display: block;
+        right: 44px;
+        bottom: 24px;
+        width: 64px;
+        height: 60px;
+        text-decoration: none;
+      }
+
+      #visionsnap-logo h3 {
+        display: block;
+        margin: 0;
+        padding: 0;
+        border: none;
+        width: 64px;
+        height: 60px;
+        position: relative;
+
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-image: url('https://mdn.alipayobjects.com/huamei_4qpv3u/afts/img/Gw5VQYp1uDkAAAAAQEAAAAgAeocTAQFr/original');
+      }
+
+      #visionsnap-logo h3::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-image: url('https://mdn.alipayobjects.com/huamei_4qpv3u/afts/img/ypysTZgrdTwAAAAAQFAAAAgAeocTAQFr/original');
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+      }
+
+      #visionsnap-logo h3:hover::before {
+        opacity: 1;
+      }
+
+      /* Tooltip 样式 */
+      #visionsnap-logo h3 {
+        cursor: pointer;
+      }
+
+      /* 自定义 Tooltip 样式 */
+      #visionsnap-logo h3::after {
+        content: 'Inspired by WeaveFox';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-bottom: 8px;
+        padding: 8px;
+        background-color: #000;
+        color: #fff;
+        font-size: 12px;
+        font-weight: normal;
+        white-space: nowrap;
+        border-radius: 4px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        pointer-events: none;
+        z-index: 999;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Tooltip 显示效果 */
+      #visionsnap-logo h3:hover::after {
+        opacity: 1;
+        visibility: visible;
+      }</style><div id="errorOverlay"></div><div id="visionsnap-loading" style="display: none;"><div class="visionsnap-title">正在思考中</div><div id="visionsnap-loading-circle"><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div><div class="visionsnap-message-container"><div id="visionsnap-loading-deps-text"><span>查看进度 →</span></div></div><div id="visionsnap-logo"><h3></h3></div></div><div id="root"><div class="flex min-h-screen flex-col bg-slate-50" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="91:4" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="17:4" data-code-inspect-jsx-tag="header" data-code-inspect-component="SiteHeader"><div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="18:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="SiteHeader"><a data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="Link" data-code-inspect-component="SiteHeader" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/" class="flex min-w-0 flex-1 items-center gap-3"><div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="SiteHeader"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building2 lucide-building-2 size-5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="21:12" data-code-inspect-jsx-tag="Building2" data-code-inspect-component="SiteHeader"><path d="M10 12h4"></path><path d="M10 8h4"></path><path d="M14 21v-3a2 2 0 0 0-4 0v3"></path><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"></path><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path></svg></div><div class="min-w-0" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="23:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="SiteHeader"><h1 class="truncate text-base font-bold tracking-tight text-slate-900" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="24:12" data-code-inspect-jsx-tag="h1" data-code-inspect-component="SiteHeader">动界体育馆 · 场地查询</h1><p class="truncate text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="27:12" data-code-inspect-jsx-tag="p" data-code-inspect-component="SiteHeader">开放状态 · 占用时段 · 在线预约</p></div></a><span class="hidden shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500 sm:block" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="30:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="SiteHeader" data-code-inspect-dynamic-text-indices="0">11月7日 · 周六</span><a data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="33:8" data-code-inspect-jsx-tag="Link" data-code-inspect-component="SiteHeader" data-code-inspect-dynamic-text-indices="0" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/bookings" class="relative inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-slate-700"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="37:10" data-code-inspect-jsx-tag="ClipboardList" data-code-inspect-component="SiteHeader"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg><span class="hidden sm:inline" data-code-inspect-loc-filepath="/src/components/SiteHeader.jsx" data-code-inspect-loc-line="38:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="SiteHeader">我的预约</span></a></div></header><main class="mx-auto w-full max-w-6xl flex-1 px-4" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="94:6" data-code-inspect-jsx-tag="main" data-code-inspect-component="Home"><section class="pb-4 pt-8" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="96:8" data-code-inspect-jsx-tag="section" data-code-inspect-component="Home"><h2 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="97:10" data-code-inspect-jsx-tag="h2" data-code-inspect-component="Home">找一个现在就能练的场地</h2><p class="mt-1.5 text-sm text-slate-500" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="100:10" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home">实时查询各场馆的开放时段、占用状态与价格信息</p><div class="relative mt-5" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="103:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="104:12" data-code-inspect-jsx-tag="Search" data-code-inspect-component="Home"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg><input placeholder="搜索场地名称、类型或区域，如「篮球」" class="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-10 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="105:12" data-code-inspect-jsx-tag="input" data-code-inspect-component="Home" value=""></div><div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="124:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0"><div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200/60" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="126:14" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><p class="text-xl font-bold text-slate-900" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="127:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">10</p><p class="mt-0.5 text-xs text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="128:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">全部场地</p></div><div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200/60" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="126:14" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><p class="text-xl font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="127:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">9</p><p class="mt-0.5 text-xs text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="128:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">当前可预约</p></div><div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200/60" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="126:14" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><p class="text-xl font-bold text-rose-500" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="127:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">0</p><p class="mt-0.5 text-xs text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="128:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">占用中</p></div><div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200/60" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="126:14" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><p class="text-xl font-bold text-amber-500" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="127:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</p><p class="mt-0.5 text-xs text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="128:16" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">维护中</p></div></div></section><div class="sticky top-16 z-20 -mx-4 border-b border-slate-200/60 bg-slate-50/90 px-4 py-3 backdrop-blur" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="135:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><div class="flex gap-2 overflow-x-auto pb-0.5" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="136:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0"><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-slate-900 font-medium text-white shadow-sm" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="138:14" data-code-inspect-jsx-tag="LayoutGrid" data-code-inspect-component="Home"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>全部</button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>篮球<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">2</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-feather size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"></path><path d="M16 8 2 22"></path><path d="M17.5 15H9"></path></svg>羽毛球<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">2</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-waves size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path></svg>游泳<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trophy size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path><path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path><path d="M18 9h1.5a1 1 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path><path d="M6 9H4.5a1 1 0 0 1 0-5H6"></path></svg>网球<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dot size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg>乒乓球<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-goal size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><path d="M12 13V2l8 4-8 4"></path><path d="M20.561 10.222a9 9 0 1 1-12.55-5.29"></path><path d="M8.002 9.997a5 5 0 1 0 8.9 2.02"></path></svg>足球<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dumbbell size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"></path><path d="m2.5 21.5 1.4-1.4"></path><path d="m20.1 3.9 1.4-1.4"></path><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"></path><path d="m9.6 14.4 4.8-4.8"></path></svg>健身<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</span></button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-person-standing size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="145:18" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><circle cx="12" cy="5" r="1"></circle><path d="m9 20 3-6 3 6"></path><path d="m6 8 6 2 6-2"></path><path d="M12 10v4"></path></svg>瑜伽<span class="text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="147:18" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0">1</span></button></div><div class="mt-2 flex gap-2 overflow-x-auto pb-0.5" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="154:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0"><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-slate-900 font-medium text-white shadow-sm" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0">全部状态</button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="159:27" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>可预约</button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="159:27" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>占用中</button><button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="19:4" data-code-inspect-jsx-tag="button" data-code-inspect-component="Chip" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wrench size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="159:27" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="Home"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"></path></svg>维护中</button></div></div><section class="pb-14 pt-5" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="168:8" data-code-inspect-jsx-tag="section" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0"><div class="mb-4 flex items-end justify-between" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="169:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home"><h3 class="font-bold text-slate-900" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="170:12" data-code-inspect-jsx-tag="h3" data-code-inspect-component="Home">场地列表<span class="ml-2 text-xs font-normal text-slate-400" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="172:14" data-code-inspect-jsx-tag="span" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0,2">10 / 10 个</span></h3><p class="hidden text-xs text-slate-400 sm:block" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="176:12" data-code-inspect-jsx-tag="p" data-code-inspect-component="Home">状态每分钟自动刷新</p></div><div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-code-inspect-loc-filepath="/src/pages/Home.jsx" data-code-inspect-loc-line="180:12" data-code-inspect-jsx-tag="div" data-code-inspect-component="Home" data-code-inspect-dynamic-text-indices="0"><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/bb-a" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-orange-400 to-rose-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>篮球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">篮球主馆</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥60</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>1 号楼 1F 甲区</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>08:00 – 22:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 24 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/bb-b" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-orange-400 to-rose-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>篮球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">篮球副馆</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥35</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>1 号楼 1F 乙区</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>08:00 – 21:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 12 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/bm-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-emerald-400 to-teal-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-feather absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"></path><path d="M16 8 2 22"></path><path d="M17.5 15H9"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-feather size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"></path><path d="M16 8 2 22"></path><path d="M17.5 15H9"></path></svg>羽毛球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">羽毛球馆 · 1 号场</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥50</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>2 号楼 2F 东区</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>08:00 – 22:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 8 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/bm-2" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-emerald-400 to-teal-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-feather absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"></path><path d="M16 8 2 22"></path><path d="M17.5 15H9"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-feather size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"></path><path d="M16 8 2 22"></path><path d="M17.5 15H9"></path></svg>羽毛球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">羽毛球馆 · 2 号场</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥50</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>2 号楼 2F 西区</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>09:00 – 21:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 8 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/sw-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-sky-400 to-blue-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-waves absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-waves size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path></svg>游泳</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">游泳馆 · 标准池</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥45</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>3 号楼 B1F</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>06:30 – 21:30</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 40 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/tn-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-lime-400 to-green-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trophy absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path><path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path><path d="M18 9h1.5a1 1 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path><path d="M6 9H4.5a1 1 0 0 1 0-5H6"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trophy size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path><path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path><path d="M18 9h1.5a1 1 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path><path d="M6 9H4.5a1 1 0 0 1 0-5H6"></path></svg>网球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">网球场 A</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥70</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>室外东区</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>07:00 – 21:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 6 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/tt-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-blue-400 to-indigo-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dot absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dot size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg>乒乓球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">乒乓球训练房</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥30</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>2 号楼 3F</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>09:00 – 21:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 12 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/ft-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-green-500 to-emerald-700" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-goal absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M12 13V2l8 4-8 4"></path><path d="M20.561 10.222a9 9 0 1 1-12.55-5.29"></path><path d="M8.002 9.997a5 5 0 1 0 8.9 2.02"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-goal size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M12 13V2l8 4-8 4"></path><path d="M20.561 10.222a9 9 0 1 1-12.55-5.29"></path><path d="M8.002 9.997a5 5 0 1 0 8.9 2.02"></path></svg>足球</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">五人制足球场</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥120</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>屋顶平台</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>08:00 – 22:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 20 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/gy-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-violet-400 to-purple-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dumbbell absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"></path><path d="m2.5 21.5 1.4-1.4"></path><path d="m20.1 3.9 1.4-1.4"></path><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"></path><path d="m9.6 14.4 4.8-4.8"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dumbbell size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"></path><path d="m2.5 21.5 1.4-1.4"></path><path d="m20.1 3.9 1.4-1.4"></path><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"></path><path d="m9.6 14.4 4.8-4.8"></path></svg>健身</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-emerald-100/70 text-emerald-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-emerald-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>可预约</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">力量健身区</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥25</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>4 号楼 1F</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>06:00 – 23:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 50 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a><a data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="Link" data-code-inspect-component="VenueCard" href="https://k6cqviftdw.preview.weavefox.cn/_visionsnap_render/index.html?enableInspector=0&amp;appPublicId=k6cqviftdw&amp;version=4.1.10&amp;bizCode=weavefox-lab#/venue/yg-1" class="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md"><div class="relative h-32 shrink-0 bg-gradient-to-br from-rose-400 to-pink-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="17:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-person-standing absolute -right-4 -bottom-4 size-24 text-white/15" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="18:8" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="5" r="1"></circle><path d="m9 20 3-6 3 6"></path><path d="m6 8 6 2 6-2"></path><path d="M12 10v4"></path></svg><span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="19:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-person-standing size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="20:10" data-code-inspect-jsx-tag="Icon" data-code-inspect-component="VenueCard"><circle cx="12" cy="5" r="1"></circle><path d="m9 20 3-6 3 6"></path><path d="m6 8 6 2 6-2"></path><path d="M12 10v4"></path></svg>瑜伽</span><span class="absolute right-3 bottom-3" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="23:8" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm bg-amber-100/70 text-amber-700" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="13:4" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge" data-code-inspect-dynamic-text-indices="0"><span class="size-1.5 rounded-full bg-amber-500" data-code-inspect-loc-filepath="/src/components/StatusBadge.jsx" data-code-inspect-loc-line="20:6" data-code-inspect-jsx-tag="span" data-code-inspect-component="StatusBadge"></span>维护中</span></span></div><div class="flex flex-1 flex-col gap-1.5 p-4" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="27:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><div class="flex items-start justify-between gap-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="28:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><h3 class="font-semibold text-slate-900" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="29:10" data-code-inspect-jsx-tag="h3" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0">瑜伽普拉提室</h3><div class="shrink-0 text-right" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="30:10" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="text-base font-bold text-emerald-600" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="31:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1">¥40</span><span class="text-xs text-slate-400" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="32:12" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">/小时</span></div></div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="35:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="36:10" data-code-inspect-jsx-tag="MapPin" data-code-inspect-component="VenueCard"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>4 号楼 2F</div><div class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="39:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="0,2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock size-3.5 shrink-0 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="40:10" data-code-inspect-jsx-tag="Clock" data-code-inspect-component="VenueCard"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>09:00 – 20:00</div><div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-2" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="43:8" data-code-inspect-jsx-tag="div" data-code-inspect-component="VenueCard"><span class="flex items-center gap-1.5 text-xs text-slate-500" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="44:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard" data-code-inspect-dynamic-text-indices="1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users size-3.5 text-slate-400" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="45:12" data-code-inspect-jsx-tag="Users" data-code-inspect-component="VenueCard"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>容纳 30 人</span><span class="flex items-center gap-0.5 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="48:10" data-code-inspect-jsx-tag="span" data-code-inspect-component="VenueCard">查看详情<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right size-3.5" aria-hidden="true" data-code-inspect-loc-filepath="/src/components/VenueCard.jsx" data-code-inspect-loc-line="50:12" data-code-inspect-jsx-tag="ChevronRight" data-code-inspect-component="VenueCard"><path d="m9 18 6-6-6-6"></path></svg></span></div></div></a></div></section></main><footer class="border-t border-slate-200/70 bg-white" data-code-inspect-loc-filepath="/src/components/SiteFooter.jsx" data-code-inspect-loc-line="5:4" data-code-inspect-jsx-tag="footer" data-code-inspect-component="SiteFooter"><div class="mx-auto max-w-6xl px-4 py-6 text-center text-xs leading-relaxed text-slate-400" data-code-inspect-loc-filepath="/src/components/SiteFooter.jsx" data-code-inspect-loc-line="6:6" data-code-inspect-jsx-tag="div" data-code-inspect-component="SiteFooter">动界体育馆场地查询系统 · 演示数据存储于浏览器本地<br data-code-inspect-loc-filepath="/src/components/SiteFooter.jsx" data-code-inspect-loc-line="8:8" data-code-inspect-jsx-tag="br" data-code-inspect-component="SiteFooter">如需场地预约，请以场馆前台公示信息为准</div></footer></div><section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false" data-react-aria-top-layer="true"></section></div><div id="app"></div><script>function loadScript(options, onload, onerror) {
+        const script = document.createElement('script');
+        script.src = options.src;
+        script.onload = onload;
+        script.onerror = function (error) {
+          if (onerror) {
+            onerror(error);
+          }
+        };
+        document.head.appendChild(script);
+      }
+
+      // 0.0.90011201993-dev.2 => dev-s090011201993
+      function formatDevVersion(version) {
+        var match = version.match(/(\d+)\.(\d+)\.(\d+)-dev\.(\d+)/);
+        if (!match) return version;
+        var number = match[3];
+        return `dev-s0${number}`;
+      }
+
+      var searchParams = new URLSearchParams(window.location.search);
+      var queryVersion = searchParams.get('version');
+      var enableInspector = searchParams.get('enableInspector') === '1';
+      var buildType = 'esm';
+      var legacyInspectorVersion = '3.7.6';
+
+      function compareVersions(versionA, versionB) {
+        var a = String(versionA).split('.').map(Number);
+        var b = String(versionB).split('.').map(Number);
+        var length = Math.max(a.length, b.length);
+
+        for (var i = 0; i < length; i += 1) {
+          var left = Number.isFinite(a[i]) ? a[i] : 0;
+          var right = Number.isFinite(b[i]) ? b[i] : 0;
+
+          if (left > right) return 1;
+          if (left < right) return -1;
+        }
+
+        return 0;
+      }
+
+      function isDevVersion(version) {
+        return !!version && version.includes('dev');
+      }
+
+      function isPreReleaseVersion(version) {
+        return !!version && version.includes('-');
+      }
+
+      function resolveAssetUrl(version, filename) {
+        if (!version) {
+          return `./${filename}`;
+        }
+
+        var basePath = `/dist/${buildType}/${filename}`;
+        if (isDevVersion(version)) {
+          return 'https://renderdev.alipay.com/p/yuyan_npm/@alipay_visionsnap-esm/' + formatDevVersion(version) + basePath;
+        }
+
+        return 'https://gw.alipayobjects.com/render/p/yuyan_npm/@alipay_visionsnap-esm/' + version + basePath;
+      }
+
+      function resolveInspectorVersion(version) {
+        if (!version || isPreReleaseVersion(version)) {
+          return version;
+        }
+
+        return compareVersions(version, legacyInspectorVersion) <= 0
+          ? legacyInspectorVersion
+          : version;
+      }
+
+      function notifyInspectorLoadFailure(src) {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            {
+              type: 'INSPECTOR_LOAD_FAIL',
+              src: src,
+              version: queryVersion,
+              inspectorVersion: resolveInspectorVersion(queryVersion),
+            },
+            '*',
+          );
+        }
+      }
+
+      function loadInspectorRuntime(inspectorSrc) {
+        if (!enableInspector) {
+          return;
+        }
+
+        loadScript(
+          { src: inspectorSrc },
+          null,
+          function () {
+            notifyInspectorLoadFailure(inspectorSrc);
+          },
+        );
+      }
+
+      var mainSrc = resolveAssetUrl(queryVersion, 'main.js');
+      var inspectorSrc = resolveAssetUrl(
+        resolveInspectorVersion(queryVersion),
+        'inspector.umd.js',
+      );
+
+      loadScript(
+        { src: mainSrc },
+        function () {
+          console.log('load success');
+        },
+        function () {
+          console.error('load main failed:', mainSrc);
+        },
+      );
+
+      if (enableInspector) {
+        setTimeout(function () {
+          loadInspectorRuntime(inspectorSrc);
+        }, 0);
+      }</script><script>(function () {
+        var logoEle = document.querySelector('#visionsnap-logo');
+        if (logoEle) {
+          logoEle.addEventListener('mouseover', () => {
+            if (typeof window.isWAN === 'undefined' || window.isWAN) {
+              logoEle.removeAttribute('style');
+            } else {
+              logoEle.style.cursor = 'pointer';
+            }
+          });
+          
+          logoEle.addEventListener('click', () => {
+            if (typeof window.isWAN === 'boolean' && !window.isWAN) {
+              window.open('https://weavefox.antgroup-inc.cn/');
+            }
+          });
+        }
+      })();</script><script id="gravity_esm_entry_js" type="module">
+      import('/src/index.jsx?v=zMXejz2P').then(() => {
+        // 成功加载后重置重试计数器
+        (function(){try{localStorage.removeItem("visionsnap_retry_count")}catch(e){console.debug("重置重试次数失败:",e)}})();
+        (function(){var e=document.getElementById("visionsnap-loading");e&&(e.style.display="none"),window.GravityFinishRender=!0})();
+        const time = (new Date() - window.VISIONSNAP_ESM_MONITOR_INFO.INIT) / 1000;
+        (function(e){window.parent.postMessage({type:"visionsnap_esm_load_success",time:e,data:{progressive:window.progressive_rendering,code:window.code,transpiledCode:window.transpiledCode,GravityFinishRender:window.GravityFinishRender}},"*")})(time);
+        window.yuyanMonitorInstance.log({
+          code: 11,
+          m1: time,
+          d8: 'project-mode',
+        });
+      }).catch((error) => {
+        if (window.progressive_rendering) {
+          console.log('### 加载入口文件失败，触发刷新');
+          (function(e,t){var r=s(e,Error)?e.message:e;window.parent.postMessage({type:"visionsnap_esm_load_fail",error:r,data:a({stack:s(e,Error)?e.stack:void 0,cause:s(e,Error)?e.cause:void 0,code:window.code,progressive:!1,transpiledCode:window.transpiledCode,GravityFinishRender:window.GravityFinishRender},t)},"*"),window.progressive_rendering&&(console.log("### loadFailHook 触发刷新"),window.location.reload())})();
+          return;
+        }
+
+        let autoReload = false;
+        let errorText = 'VisionSnap 预览报错，详情可看控制台错误堆栈。' + error;
+        if (error.toString().startsWith('TypeError: Failed to fetch dynamically imported module')) {
+          // 使用重试机制替代直接的autoReload
+          (function(e){var t="visionsnap_retry_count",r=function(){try{var e=localStorage.getItem("visionsnap_retry_count");return e?parseInt(e,10):0}catch(e){return console.debug("获取重试次数失败:",e),0}}();if(r>=3)return console.debug("已达到最大重试次数 ".concat(3,"，停止重试")),function(){try{localStorage.removeItem(t)}catch(e){console.debug("重置重试次数失败:",e)}}(),void e();var n=r+1;!function(e){try{localStorage.setItem(t,e.toString())}catch(e){console.debug("设置重试次数失败:",e)}}(n),console.debug("第 ".concat(n," 次重试，直接执行reload"));try{window.location.reload()}catch(e){console.debug("第 ".concat(n," 次重试失败:"),e)}})(() => {
+            window.GravityFinishRender = true;
+            (function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"渲染失败",t=arguments.length>1?arguments[1]:void 0,r=arguments.length>2?arguments[2]:void 0,n=function(){var t=document.getElementById("visionsnap-loading");t&&(t.style.display="none");var n,i,s,a,o,l=document.getElementById("errorOverlay"),c=document.getElementById("root");if(c&&(c.style.display="none"),l){l.style.display="block";var p=(s=e,(null!=(a=Error)&&"undefined"!=typeof Symbol&&a[Symbol.hasInstance]?a[Symbol.hasInstance](s):s instanceof a)?e.stack||e.message:String(e));l.innerHTML='<pre style="white-space: pre-wrap; font-family: monospace; color: #ff6b6b; background: #fff5f5; padding: 16px; border-radius: 4px; border-left: 4px solid #ff6b6b; margin: 0; overflow-x: auto;">'.concat((n=p,(i=document.createElement("div")).textContent=n,i.innerHTML),"</pre>")}window.GravityFinishRender=!0;try{(window.loadFailHook||u.eD)(String(e),r)}catch(t){throw console.error("loadFailHook failed: ",t),new Error("loadFailHook failed. errMsg: ".concat(e))}(null==r?void 0:r.ignore)||window.yuyanMonitorInstance.log({code:14,msg:e,d1:(null===(o=new URLSearchParams(window.location.search))||void 0===o?void 0:o.get("version"))||"none",d3:window.assetLink||"none"});if(String(e).startsWith("VisionSnap"))throw new Error(String(e));throw new Error("VisionSnap 渲染出错，错误详情：".concat(e))},i=window._checkImportMaps;!window.isWAN&&t&&i?i().then(function(e){void 0!==e&&(!0===e?window.location.reload():n())}).catch(n):n()})('VisionSnap 预览报错，请刷新重试。或可看控制台堆栈的错误详情。',  false);
+          });
+          return;
+        }
+        (function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"渲染失败",t=arguments.length>1?arguments[1]:void 0,r=arguments.length>2?arguments[2]:void 0,n=function(){var t=document.getElementById("visionsnap-loading");t&&(t.style.display="none");var n,i,s,a,o,l=document.getElementById("errorOverlay"),c=document.getElementById("root");if(c&&(c.style.display="none"),l){l.style.display="block";var p=(s=e,(null!=(a=Error)&&"undefined"!=typeof Symbol&&a[Symbol.hasInstance]?a[Symbol.hasInstance](s):s instanceof a)?e.stack||e.message:String(e));l.innerHTML='<pre style="white-space: pre-wrap; font-family: monospace; color: #ff6b6b; background: #fff5f5; padding: 16px; border-radius: 4px; border-left: 4px solid #ff6b6b; margin: 0; overflow-x: auto;">'.concat((n=p,(i=document.createElement("div")).textContent=n,i.innerHTML),"</pre>")}window.GravityFinishRender=!0;try{(window.loadFailHook||u.eD)(String(e),r)}catch(t){throw console.error("loadFailHook failed: ",t),new Error("loadFailHook failed. errMsg: ".concat(e))}(null==r?void 0:r.ignore)||window.yuyanMonitorInstance.log({code:14,msg:e,d1:(null===(o=new URLSearchParams(window.location.search))||void 0===o?void 0:o.get("version"))||"none",d3:window.assetLink||"none"});if(String(e).startsWith("VisionSnap"))throw new Error(String(e));throw new Error("VisionSnap 渲染出错，错误详情：".concat(e))},i=window._checkImportMaps;!window.isWAN&&t&&i?i().then(function(e){void 0!==e&&(!0===e?window.location.reload():n())}).catch(n):n()})(errorText, autoReload);
+      });
+    </script></body></html>
